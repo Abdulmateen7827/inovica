@@ -458,13 +458,160 @@
 #                 st.write(comparison_result)
 #     else:
 #         st.error("Please enter both image URLs before comparing.")
+# import streamlit as st
+# import requests
+# import base64
+# import re
+# import pandas as pd
+# import io
+
+# # Function to encode an image from a URL to base64 format
+# def encode_image_from_url(url):
+#     response = requests.get(url)
+#     if response.status_code == 200:
+#         return base64.b64encode(response.content).decode('utf-8')
+#     else:
+#         return None
+
+# # Function to send images to the model and get a comparison result
+# def compare_images(base64_image1, base64_image2, model_name):
+#     api_key = "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"
+#     headers = {
+#         "Content-Type": "application/json",
+#         "Authorization": f"Bearer {api_key}"
+#     }
+
+#     payload = {
+#         "model": model_name,
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content": [
+#                     {
+#                         "type": "text",
+#                         "text": "We want to do a three-way classification: match, not match, or partial match. \
+#                         If both contain the same product, return 'Match'; if one contains a product that the other has \
+#                         but has additional products alongside it, return 'Partial Match'; if the two products contain entirely \
+#                         different products, return 'No Match'. Additionally, identify and return the type of product from each image \
+#                         in the format 'Product Type 1: [TYPE1]; Product Type 2: [TYPE2]; Comparison Result: [RESULT]'."
+#                     },
+#                     {
+#                         "type": "image_url",
+#                         "image_url": {
+#                             "url": f"data:image/jpeg;base64,{base64_image1}"
+#                         }
+#                     },
+#                     {
+#                         "type": "image_url",
+#                         "image_url": {
+#                             "url": f"data:image/jpeg;base64,{base64_image2}"
+#                         }
+#                     }
+#                 ]
+#             }
+#         ],
+#         "max_tokens": 3000
+#     }
+
+#     response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+#     response_json = response.json()
+
+#     # Extracting the content from the response
+#     content = response_json.get('choices', [{}])[0].get('message', {}).get('content', "")
+
+#     return content
+
+# # Function to parse the model output
+# def parse_model_output(output):
+#     pattern = r"Product Type 1: (.*?); Product Type 2: (.*?); Comparison Result: (.*)"
+#     match = re.search(pattern, output)
+#     if match:
+#         return match.groups()
+#     return None, None, None
+# # Function to create DataFrame and CSV
+# # def create_dataframe_and_csv(data):
+# #     df = pd.DataFrame([data], columns=['Product Type 1', 'Product Type 2', 'Comparison Result'])
+# #     csv = df.to_csv(index=False)
+# #     return df, csv
+
+# # Streamlit app
+# st.title("Image Comparison and Classification")
+
+# # Select GPT model
+# model_name = st.selectbox(
+#     "Select the GPT model to use",
+#     ("gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo")
+# )
+
+# # Input for Image URLs
+# image_url1 = st.text_input("Enter the URL of the first image")
+# image_url2 = st.text_input("Enter the URL of the second image")
+
+# # Compare Images button
+# if st.button("Compare Images"):
+#     if image_url1 and image_url2:
+#         # Encode the images from URLs
+#         base64_image1 = encode_image_from_url(image_url1)
+#         base64_image2 = encode_image_from_url(image_url2)
+
+#         # If images could not be fetched, display an error
+#         if not base64_image1 or not base64_image2:
+#             st.error("Error fetching images. Please check the URLs and try again.")
+#         else:
+#             # Compare images using the model
+#             comparison_result = compare_images(base64_image1, base64_image2, model_name)
+            
+#             # Parse the model output
+#             product_type1, product_type2, result = parse_model_output(comparison_result)
+            
+#             if product_type1 and product_type2 and result:
+#                 # Display the images and the comparison result in a table format
+#                 st.markdown(f"""
+#                 <table style='width:100%; border: 1px solid black; border-collapse: collapse;'>
+#                     <tr style='border: 1px solid black;'>
+#                         <th style='border: 1px solid black;'>Image 1</th>
+#                         <th style='border: 1px solid black;'>Image 2</th>
+#                         <th style='border: 1px solid black;'>Comparison Result</th>
+#                     </tr>
+#                     <tr style='border: 1px solid black;'>
+#                         <td style='border: 1px solid black;'>
+#                             <img src="{image_url1}" alt="Image 1" width="150" height="150">
+#                             <p>Product Type 1: {product_type1}</p>
+#                         </td>
+#                         <td style='border: 1px solid black;'>
+#                             <img src="{image_url2}" alt="Image 2" width="150" height="150">
+#                             <p>Product Type 2: {product_type2}</p>
+#                         </td>
+#                         <td style='border: 1px solid black;'>{result}</td>
+#                     </tr>
+#                 </table>
+#                 """, unsafe_allow_html=True)
+
+#                 # # Create DataFrame and CSV
+#                 # df, csv_data = create_dataframe_and_csv({
+#                 #     'Product Type 1': product_type1, 
+#                 #     'Product Type 2': product_type2, 
+#                 #     'Comparison Result': result
+#                 # })
+                
+#             #     # Provide download link for CSV
+#             #     st.download_button(
+#             #         label="Download CSV",
+#             #         data=csv_data,
+#             #         file_name="comparison_result.csv",
+#             #         mime="text/csv"
+#             #     )
+#             # else:
+#             #     st.error("Failed to parse the model output. Here's the raw output:")
+#             #     st.write(comparison_result)
+#     else:
+#         st.error("Please enter both image URLs before comparing.")
+
 
 import streamlit as st
 import requests
 import base64
 import re
-import pandas as pd
-import io
 
 # Function to encode an image from a URL to base64 format
 def encode_image_from_url(url):
@@ -475,8 +622,7 @@ def encode_image_from_url(url):
         return None
 
 # Function to send images to the model and get a comparison result
-def compare_images(base64_image1, base64_image2, model_name):
-    api_key = "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"
+def compare_images(base64_image1, base64_image2, model_name, api_key):
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
@@ -529,14 +675,12 @@ def parse_model_output(output):
     if match:
         return match.groups()
     return None, None, None
-# Function to create DataFrame and CSV
-# def create_dataframe_and_csv(data):
-#     df = pd.DataFrame([data], columns=['Product Type 1', 'Product Type 2', 'Comparison Result'])
-#     csv = df.to_csv(index=False)
-#     return df, csv
 
 # Streamlit app
 st.title("Image Comparison and Classification")
+
+# Input for API key
+api_key = st.text_input("Enter your OpenAI API key", type="password")
 
 # Select GPT model
 model_name = st.selectbox(
@@ -550,7 +694,7 @@ image_url2 = st.text_input("Enter the URL of the second image")
 
 # Compare Images button
 if st.button("Compare Images"):
-    if image_url1 and image_url2:
+    if api_key and image_url1 and image_url2:
         # Encode the images from URLs
         base64_image1 = encode_image_from_url(image_url1)
         base64_image2 = encode_image_from_url(image_url2)
@@ -560,7 +704,7 @@ if st.button("Compare Images"):
             st.error("Error fetching images. Please check the URLs and try again.")
         else:
             # Compare images using the model
-            comparison_result = compare_images(base64_image1, base64_image2, model_name)
+            comparison_result = compare_images(base64_image1, base64_image2, model_name, api_key)
             
             # Parse the model output
             product_type1, product_type2, result = parse_model_output(comparison_result)
@@ -587,23 +731,8 @@ if st.button("Compare Images"):
                     </tr>
                 </table>
                 """, unsafe_allow_html=True)
-
-                # # Create DataFrame and CSV
-                # df, csv_data = create_dataframe_and_csv({
-                #     'Product Type 1': product_type1, 
-                #     'Product Type 2': product_type2, 
-                #     'Comparison Result': result
-                # })
-                
-            #     # Provide download link for CSV
-            #     st.download_button(
-            #         label="Download CSV",
-            #         data=csv_data,
-            #         file_name="comparison_result.csv",
-            #         mime="text/csv"
-            #     )
-            # else:
-            #     st.error("Failed to parse the model output. Here's the raw output:")
-            #     st.write(comparison_result)
+            else:
+                st.error("Failed to parse the model output. Here's the raw output:")
+                st.write(comparison_result)
     else:
-        st.error("Please enter both image URLs before comparing.")
+        st.error("Please enter the API key and both image URLs before comparing.")
